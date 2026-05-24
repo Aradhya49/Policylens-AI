@@ -1,0 +1,205 @@
+{% extends "layouts/dashboard_layout.html" %}
+{% block title %}Reports - PolicyLens AI{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Reports
+            {% if doc_count > 0 %}
+            <span class="badge bg-primary ms-2 fs-6">{{ doc_count }}</span>
+            {% endif %}
+        </h1>
+        <p class="page-subtitle">All uploaded documents and their analysis status</p>
+    </div>
+    <a href="{{ url_for('upload.upload_document') }}" class="btn btn-primary">
+        <i class="bi bi-plus me-1"></i>New Upload
+    </a>
+</div>
+
+<!-- Search + Filter bar -->
+<div class="card-panel mb-4">
+    <div class="panel-body py-3">
+        <div class="row g-2 align-items-center">
+            <div class="col-md-6">
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-search"></i></span>
+                    <input type="text" id="liveSearch" class="form-control"
+                           placeholder="Search by title or category..."
+                           value="{{ search_q }}" autocomplete="off">
+                </div>
+            </div>
+            <div class="col-md-3">
+                <select id="riskFilter" class="form-select">
+                    <option value="">All Risk Levels</option>
+                    <option value="Low"    {% if risk_filter == 'Low'    %}selected{% endif %}>Low</option>
+                    <option value="Medium" {% if risk_filter == 'Medium' %}selected{% endif %}>Medium</option>
+                    <option value="High"   {% if risk_filter == 'High'   %}selected{% endif %}>High</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <button type="button" class="btn btn-outline-secondary w-100" id="clearFilters">
+                    <i class="bi bi-x me-1"></i>Clear
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card-panel">
+    <div class="panel-body p-0">
+        {% if reports %}
+        <div class="table-responsive">
+            <table class="table dashboard-table mb-0">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Document Title</th>
+                        <th>Category</th>
+                        <th>Size</th>
+                        <th>Risk Level</th>
+                        <th>Uploaded</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in reports %}
+                    <tr class="report-row"
+                        data-title="{{ r.title | lower }}"
+                        data-category="{{ r.category | lower }}"
+                        data-risk="{{ r.risk_level if r.risk_level else '' }}">
+                        <td class="text-muted">{{ loop.index }}</td>
+                        <td>
+                            <div class="d-flex align-items-center gap-2">
+                                <i class="bi bi-file-earmark-pdf text-danger"></i>
+                                <strong>{{ r.title }}</strong>
+                            </div>
+                        </td>
+                        <td><span class="badge badge-category">{{ r.category }}</span></td>
+                        <td class="text-muted">
+                            {% if r.file_size %}{{ (r.file_size / 1024) | round(1) }} KB{% else %}—{% endif %}
+                        </td>
+                        <td>
+                            {% if r.risk_level == 'High' %}
+                                <span class="badge bg-danger">High</span>
+                            {% elif r.risk_level == 'Medium' %}
+                                <span class="badge bg-warning text-dark">Medium</span>
+                            {% elif r.risk_level == 'Low' %}
+                                <span class="badge bg-success">Low</span>
+                            {% else %}
+                                <span class="badge bg-secondary">Not Analyzed</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-muted">{{ r.uploaded_at.strftime('%b %d, %Y') }}</td>
+                        <td>
+                            <div class="d-flex gap-1 flex-wrap">
+                                <a href="{{ url_for('analysis.analyze', doc_id=r.doc_id) }}"
+                                   class="btn btn-sm btn-outline-primary" title="View Analysis">
+                                    <i class="bi bi-cpu"></i>
+                                </a>
+                                {% if r.analysis_id %}
+                                <a href="{{ url_for('analysis.download_pdf', doc_id=r.doc_id) }}"
+                                   class="btn btn-sm btn-outline-success" title="Download PDF">
+                                    <i class="bi bi-file-earmark-pdf"></i>
+                                </a>
+                                {% endif %}
+                                <form method="POST"
+                                      action="{{ url_for('reports.delete_report', doc_id=r.doc_id) }}"
+                                      class="delete-form">
+                                    <button type="button"
+                                            class="btn btn-sm btn-outline-danger delete-btn"
+                                            title="Delete"
+                                            data-title="{{ r.title }}">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <div id="noResultsMsg" class="empty-state" style="display:none">
+                <i class="bi bi-search"></i>
+                <p>No documents match your search.</p>
+            </div>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <i class="bi bi-inbox"></i>
+            {% if search_q or risk_filter %}
+                <p>No documents match your search.</p>
+                <a href="{{ url_for('reports.index') }}" class="btn btn-outline-secondary btn-sm">Clear Filter</a>
+            {% else %}
+                <p>No documents found. Upload your first document.</p>
+                <a href="{{ url_for('upload.upload_document') }}" class="btn btn-primary btn-sm">Upload Now</a>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+// ── Live search + filter ─────────────────────────────
+const searchInput = document.getElementById('liveSearch');
+const riskSelect  = document.getElementById('riskFilter');
+const clearBtn    = document.getElementById('clearFilters');
+const rows        = document.querySelectorAll('.report-row');
+const emptyMsg    = document.getElementById('noResultsMsg');
+
+function filterRows() {
+    const q    = searchInput ? searchInput.value.toLowerCase().trim() : '';
+    const risk = riskSelect  ? riskSelect.value : '';
+    let visible = 0;
+
+    rows.forEach(function(row) {
+        const title    = row.getAttribute('data-title')    || '';
+        const category = row.getAttribute('data-category') || '';
+        const rowRisk  = row.getAttribute('data-risk')     || '';
+
+        const matchSearch = !q    || title.includes(q) || category.includes(q);
+        const matchRisk   = !risk || rowRisk === risk;
+
+        if (matchSearch && matchRisk) {
+            row.style.display = '';
+            visible++;
+        } else {
+            row.style.display = 'none';
+        }
+    });
+
+    if (emptyMsg) {
+        emptyMsg.style.display = visible === 0 ? 'block' : 'none';
+    }
+}
+
+if (searchInput) searchInput.addEventListener('input', filterRows);
+if (riskSelect)  riskSelect.addEventListener('change', filterRows);
+if (clearBtn) {
+    clearBtn.addEventListener('click', function() {
+        if (searchInput) searchInput.value = '';
+        if (riskSelect)  riskSelect.value  = '';
+        filterRows();
+    });
+}
+
+// Run on load in case values pre-filled
+filterRows();
+
+// ── Delete confirm ───────────────────────────────────
+document.querySelectorAll('.delete-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+        var form  = this.closest('.delete-form');
+        var title = this.getAttribute('data-title');
+        showConfirm({
+            title:     'Delete Document?',
+            message:   '"' + title + '" and its analysis will be permanently deleted. This cannot be undone.',
+            btnText:   'Yes, Delete',
+            btnClass:  'btn-danger',
+            iconClass: 'icon-danger',
+            onConfirm: function() { form.submit(); }
+        });
+    });
+});
+</script>
+{% endblock %}

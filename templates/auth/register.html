@@ -1,0 +1,232 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Register - PolicyLens AI{% endblock %}
+
+{% block body %}
+<div class="auth-wrapper">
+    <div class="auth-card">
+
+        <div class="auth-brand">
+            <div class="brand-icon"><i class="bi bi-shield-check"></i></div>
+            <h2 class="brand-title">PolicyLens <span>AI</span></h2>
+            <p class="brand-subtitle">AI-Powered Legal Document Simplifier</p>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                        <i class="bi bi-{% if category == 'success' %}check-circle{% elif category == 'danger' %}x-circle{% else %}info-circle{% endif %} me-2"></i>
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <h4 class="auth-heading">Create Account</h4>
+        <p class="auth-sub">Start analyzing legal documents today</p>
+
+        <form method="POST" action="{{ url_for('auth.register') }}" id="registerForm" novalidate>
+
+            <!-- Username -->
+            <div class="mb-3">
+                <label class="form-label required-label">Username</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-person"></i></span>
+                    <input type="text" name="username" id="username"
+                           class="form-control" placeholder="e.g. johndoe"
+                           required autocomplete="username">
+                </div>
+                <div class="invalid-feedback-custom" id="username-error"></div>
+            </div>
+
+            <!-- Email -->
+            <div class="mb-3">
+                <label class="form-label required-label">Email Address</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-envelope"></i></span>
+                    <input type="email" name="email" id="email"
+                           class="form-control" placeholder="you@example.com"
+                           required autocomplete="email">
+                </div>
+                <div class="invalid-feedback-custom" id="email-error"></div>
+            </div>
+
+            <!-- Password -->
+            <div class="mb-3">
+                <label class="form-label required-label">Password</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-lock"></i></span>
+                    <input type="password" name="password" id="password"
+                           class="form-control" placeholder="Min 6 characters"
+                           required minlength="6" autocomplete="new-password">
+                    <button type="button" class="eye-btn" onclick="togglePassword('password', 'eyeIcon1')" tabindex="-1">
+                        <i class="bi bi-eye" id="eyeIcon1"></i>
+                    </button>
+                </div>
+                <div class="invalid-feedback-custom" id="password-error"></div>
+            </div>
+
+            <!-- Confirm Password -->
+            <div class="mb-4">
+                <label class="form-label required-label">Confirm Password</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-lock-fill"></i></span>
+                    <input type="password" name="confirm_password" id="confirm_password"
+                           class="form-control" placeholder="Repeat your password"
+                           required autocomplete="new-password">
+                    <button type="button" class="eye-btn" onclick="togglePassword('confirm_password', 'eyeIcon2')" tabindex="-1">
+                        <i class="bi bi-eye" id="eyeIcon2"></i>
+                    </button>
+                </div>
+                <div class="invalid-feedback-custom" id="confirm-error"></div>
+            </div>
+
+            <button type="submit" class="btn btn-primary w-100 auth-btn">
+                <i class="bi bi-person-plus me-2"></i>Create Account
+            </button>
+        </form>
+
+        <div class="auth-footer">
+            Already have an account?
+            <a href="{{ url_for('auth.login') }}">Sign in</a>
+        </div>
+
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// ── Toggle password visibility ──────────────────────────
+function togglePassword(fieldId, iconId) {
+    const field = document.getElementById(fieldId);
+    const icon  = document.getElementById(iconId);
+    if (field.type === 'password') {
+        field.type = 'text';
+        icon.classList.replace('bi-eye', 'bi-eye-slash');
+    } else {
+        field.type = 'password';
+        icon.classList.replace('bi-eye-slash', 'bi-eye');
+    }
+}
+
+// ── Email regex validation ───────────────────────────────
+function isValidEmail(email) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim());
+}
+
+function setError(inputId, errorId, message) {
+    const input = document.getElementById(inputId);
+    const error = document.getElementById(errorId);
+    input.classList.add('input-invalid');
+    input.classList.remove('input-valid');
+    error.textContent = message;
+    error.style.display = 'block';
+}
+
+function setValid(inputId, errorId) {
+    const input = document.getElementById(inputId);
+    const error = document.getElementById(errorId);
+    input.classList.remove('input-invalid');
+    input.classList.add('input-valid');
+    error.textContent = '';
+    error.style.display = 'none';
+}
+
+function clearState(inputId, errorId) {
+    const input = document.getElementById(inputId);
+    const error = document.getElementById(errorId);
+    input.classList.remove('input-invalid', 'input-valid');
+    error.textContent = '';
+    error.style.display = 'none';
+}
+
+// ── Live validation ──────────────────────────────────────
+document.getElementById('username').addEventListener('input', function() {
+    const val = this.value.trim();
+    if (val.length === 0) {
+        clearState('username', 'username-error');
+    } else if (!/^[a-zA-Z]/.test(val)) {
+        setError('username', 'username-error', '⚠ Username must start with a letter.');
+    } else {
+        setValid('username', 'username-error');
+    }
+});
+
+document.getElementById('email').addEventListener('input', function() {
+    const val = this.value.trim();
+    if (val.length === 0) {
+        clearState('email', 'email-error');
+    } else if (!isValidEmail(val)) {
+        setError('email', 'email-error', '⚠ Invalid email format. Example: user@example.com');
+    } else {
+        setValid('email', 'email-error');
+    }
+});
+
+document.getElementById('password').addEventListener('input', function() {
+    if (this.value.length === 0) {
+        clearState('password', 'password-error');
+    } else if (this.value.length < 6) {
+        setError('password', 'password-error', '⚠ Password must be at least 6 characters.');
+    } else {
+        setValid('password', 'password-error');
+    }
+    // Re-check confirm if already typed
+    const confirm = document.getElementById('confirm_password');
+    if (confirm.value.length > 0) {
+        confirm.dispatchEvent(new Event('input'));
+    }
+});
+
+document.getElementById('confirm_password').addEventListener('input', function() {
+    const pw = document.getElementById('password').value;
+    if (this.value.length === 0) {
+        clearState('confirm_password', 'confirm-error');
+    } else if (this.value !== pw) {
+        setError('confirm_password', 'confirm-error', '⚠ Passwords do not match.');
+    } else {
+        setValid('confirm_password', 'confirm-error');
+    }
+});
+
+// ── Form submit validation ───────────────────────────────
+document.getElementById('registerForm').addEventListener('submit', function(e) {
+    let valid = true;
+
+    const username = document.getElementById('username').value.trim();
+    const email    = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value;
+    const confirm  = document.getElementById('confirm_password').value;
+
+    if (!username) {
+        setError('username', 'username-error', '⚠ Username is required.');
+        valid = false;
+    } else if (!/^[a-zA-Z]/.test(username)) {
+        setError('username', 'username-error', '⚠ Username must start with a letter.');
+        valid = false;
+    }
+
+    if (!isValidEmail(email)) {
+        setError('email', 'email-error', '⚠ Invalid email format. Example: user@example.com');
+        valid = false;
+    }
+
+    if (password.length < 6) {
+        setError('password', 'password-error', '⚠ Password must be at least 6 characters.');
+        valid = false;
+    }
+
+    if (confirm !== password) {
+        setError('confirm_password', 'confirm-error', '⚠ Passwords do not match. Please re-enter.');
+        valid = false;
+    }
+
+    if (!valid) {
+        e.preventDefault();
+    }
+});
+</script>
+{% endblock %}

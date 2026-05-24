@@ -1,0 +1,313 @@
+{% extends "layouts/dashboard_layout.html" %}
+{% block title %}Analysis - {{ document.title }} - PolicyLens AI{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">AI Analysis Result</h1>
+        <p class="page-subtitle">{{ document.title }} &mdash; {{ document.category }}</p>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+        <a href="#" class="btn btn-outline-warning" id="reanalyzeBtn"
+           data-url="{{ url_for('analysis.analyze', doc_id=document.id, reanalyze=1) }}">
+            <i class="bi bi-arrow-repeat me-1"></i>Re-analyze
+        </a>
+        <a href="{{ url_for('analysis.download_pdf', doc_id=document.id) }}" class="btn btn-outline-success">
+            <i class="bi bi-file-earmark-pdf me-1"></i>Download PDF
+        </a>
+        <a href="{{ url_for('upload.upload_document') }}" class="btn btn-primary">
+            <i class="bi bi-plus me-1"></i>New Upload
+        </a>
+    </div>
+</div>
+
+<!-- Risk Banner -->
+<div class="mb-4">
+    <div class="risk-banner risk-{{ analysis.risk_level | lower }}">
+        <div class="risk-banner-icon">
+            {% if analysis.risk_level == 'High' %}
+                <i class="bi bi-exclamation-octagon-fill"></i>
+            {% elif analysis.risk_level == 'Medium' %}
+                <i class="bi bi-exclamation-triangle-fill"></i>
+            {% else %}
+                <i class="bi bi-shield-check-fill"></i>
+            {% endif %}
+        </div>
+        <div class="risk-banner-text">
+            <strong>Risk Level: {{ analysis.risk_level }}</strong>
+            <span>
+                {% if analysis.risk_level == 'High' %}
+                    This document contains significant risks. Review carefully before signing.
+                {% elif analysis.risk_level == 'Medium' %}
+                    Some clauses require your attention. Review highlighted sections.
+                {% else %}
+                    This document appears standard with no major concerns.
+                {% endif %}
+            </span>
+            {% if analysis.overall_recommendation %}
+            <p class="mt-2 mb-0" style="font-size:13px;opacity:0.9">
+                <i class="bi bi-lightbulb me-1"></i>{{ analysis.overall_recommendation }}
+            </p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Before You Sign -->
+{% if analysis.before_you_sign %}
+<div class="card-panel before-sign-card mb-4">
+    <div class="panel-header">
+        <h5 class="panel-title">
+            <i class="bi bi-pen me-2 text-warning"></i>Before You Sign — Read This First
+        </h5>
+    </div>
+    <div class="panel-body">
+        <div class="before-sign-list">
+            {% for item in analysis.before_you_sign %}
+            <div class="before-sign-item">
+                <div class="before-sign-num">{{ loop.index }}</div>
+                <span>{{ item }}</span>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Analysis Tabs -->
+<div class="card-panel">
+    <div class="panel-body p-0">
+        <ul class="nav nav-tabs analysis-tabs" id="analysisTabs">
+            <li class="nav-item">
+                <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#summaryTab">
+                    <i class="bi bi-file-text me-1"></i>Summary
+                </button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#riskTab">
+                    <i class="bi bi-shield-exclamation me-1"></i>Risk Highlights
+                </button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#clausesTab">
+                    <i class="bi bi-key me-1"></i>Key Clauses
+                </button>
+            </li>
+            {% if analysis.protective_clauses %}
+            <li class="nav-item">
+                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#protectTab">
+                    <i class="bi bi-shield-check me-1"></i>Your Protections
+                </button>
+            </li>
+            {% endif %}
+            {% if analysis.missing_clauses %}
+            <li class="nav-item">
+                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#missingTab">
+                    <i class="bi bi-exclamation-circle me-1"></i>Missing Clauses
+                </button>
+            </li>
+            {% endif %}
+            <li class="nav-item">
+                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#questionsTab">
+                    <i class="bi bi-question-circle me-1"></i>Questions to Ask
+                </button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#simpleTab">
+                    <i class="bi bi-lightbulb me-1"></i>Simple Breakdown
+                </button>
+            </li>
+        </ul>
+
+        <div class="tab-content analysis-tab-content p-4">
+
+            <!-- Summary -->
+            <div class="tab-pane fade show active" id="summaryTab">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <h5 class="tab-section-title mb-0">
+                        <i class="bi bi-file-text me-2 text-primary"></i>Document Summary
+                    </h5>
+                    <button class="btn btn-sm btn-outline-secondary copy-btn" data-target="summaryText">
+                        <i class="bi bi-clipboard me-1"></i>Copy
+                    </button>
+                </div>
+                <p class="analysis-text" id="summaryText">{{ analysis.summary }}</p>
+            </div>
+
+            <!-- Risk Highlights -->
+            <div class="tab-pane fade" id="riskTab">
+                <h5 class="tab-section-title">
+                    <i class="bi bi-shield-exclamation me-2 text-danger"></i>Risk Highlights
+                </h5>
+                {% if analysis.risk_highlights %}
+                <div class="risk-list">
+                    {% for risk in analysis.risk_highlights %}
+                    <div class="risk-item-new severity-{{ risk.severity if risk.severity else 'medium' }}">
+                        <div class="severity-badge">
+                            {% if risk.severity == 'high' %}
+                                <span class="badge bg-danger">🔴 High</span>
+                            {% elif risk.severity == 'medium' %}
+                                <span class="badge bg-warning text-dark">🟠 Moderate</span>
+                            {% else %}
+                                <span class="badge bg-success">🟢 Low</span>
+                            {% endif %}
+                        </div>
+                        <span class="risk-text">{{ risk.text if risk.text else risk }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-muted">No major risk highlights found.</p>
+                {% endif %}
+            </div>
+
+            <!-- Key Clauses -->
+            <div class="tab-pane fade" id="clausesTab">
+                <h5 class="tab-section-title">
+                    <i class="bi bi-key me-2 text-success"></i>Key Clauses
+                </h5>
+                {% if analysis.key_clauses %}
+                <div class="row g-3">
+                    {% for clause in analysis.key_clauses %}
+                    <div class="col-md-6">
+                        <div class="clause-card clause-{{ clause.severity if clause.severity else 'medium' }}">
+                            <div class="clause-header">
+                                <div class="clause-title">
+                                    <i class="bi bi-bookmark-fill me-2"></i>{{ clause.clause }}
+                                </div>
+                                {% if clause.severity == 'high' %}
+                                    <span class="badge bg-danger ms-auto">High</span>
+                                {% elif clause.severity == 'medium' %}
+                                    <span class="badge bg-warning text-dark ms-auto">Moderate</span>
+                                {% else %}
+                                    <span class="badge bg-success ms-auto">Standard</span>
+                                {% endif %}
+                            </div>
+                            <p class="clause-desc">{{ clause.description }}</p>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-muted">No key clauses identified.</p>
+                {% endif %}
+            </div>
+
+            <!-- Your Protections -->
+            {% if analysis.protective_clauses %}
+            <div class="tab-pane fade" id="protectTab">
+                <h5 class="tab-section-title">
+                    <i class="bi bi-shield-check me-2 text-success"></i>Clauses That Protect You
+                </h5>
+                <div class="protect-list">
+                    {% for item in analysis.protective_clauses %}
+                    <div class="protect-item">
+                        <i class="bi bi-check-circle-fill text-success me-2"></i>
+                        <span>{{ item }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Missing Clauses -->
+            {% if analysis.missing_clauses %}
+            <div class="tab-pane fade" id="missingTab">
+                <h5 class="tab-section-title">
+                    <i class="bi bi-exclamation-circle me-2 text-warning"></i>Potentially Missing Clauses
+                </h5>
+                <p class="text-muted small mb-3">These important clauses were not found in the document. Their absence may create legal or business risks.</p>
+                <div class="missing-list">
+                    {% for item in analysis.missing_clauses %}
+                    <div class="missing-item">
+                        <i class="bi bi-dash-circle-fill text-warning me-2"></i>
+                        <span>{{ item }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Questions to Ask -->
+            <div class="tab-pane fade" id="questionsTab">
+                <h5 class="tab-section-title">
+                    <i class="bi bi-question-circle me-2 text-primary"></i>Questions to Ask Before Signing
+                </h5>
+                <p class="text-muted small mb-3">Raise these questions with the other party or your legal advisor before signing.</p>
+                {% if analysis.questions_to_ask %}
+                <div class="questions-list">
+                    {% for q in analysis.questions_to_ask %}
+                    <div class="question-item">
+                        <div class="question-num">Q{{ loop.index }}</div>
+                        <span>{{ q }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-muted">No specific questions generated.</p>
+                {% endif %}
+            </div>
+
+            <!-- Simple Breakdown -->
+            <div class="tab-pane fade" id="simpleTab">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <h5 class="tab-section-title mb-0">
+                        <i class="bi bi-lightbulb me-2 text-warning"></i>Simple Breakdown
+                    </h5>
+                    <button class="btn btn-sm btn-outline-secondary copy-btn" data-target="simpleText">
+                        <i class="bi bi-clipboard me-1"></i>Copy
+                    </button>
+                </div>
+                <div class="simple-box">
+                    <p class="analysis-text" id="simpleText">{{ analysis.simplified_explanation }}</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<div class="mt-3 d-flex gap-2 flex-wrap">
+    <a href="{{ url_for('reports.index') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i>Back to Reports
+    </a>
+    <a href="{{ url_for('analysis.download_pdf', doc_id=document.id) }}" class="btn btn-outline-success">
+        <i class="bi bi-file-earmark-pdf me-1"></i>Download PDF
+    </a>
+    <a href="{{ url_for('upload.upload_document') }}" class="btn btn-primary">
+        <i class="bi bi-cloud-upload me-1"></i>Upload Another
+    </a>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.getElementById('reanalyzeBtn').addEventListener('click', function(e) {
+    e.preventDefault();
+    var url = this.getAttribute('data-url');
+    showConfirm({
+        title:     'Re-analyze Document?',
+        message:   'This will run a fresh AI analysis and replace the current results.',
+        btnText:   'Yes, Re-analyze',
+        btnClass:  'btn-warning',
+        iconClass: 'icon-warning',
+        onConfirm: function() { window.location.href = url; }
+    });
+});
+
+document.querySelectorAll('.copy-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+        var text = document.getElementById(this.getAttribute('data-target')).textContent.trim();
+        navigator.clipboard.writeText(text).then(() => {
+            this.innerHTML = '<i class="bi bi-clipboard-check me-1"></i>Copied!';
+            this.classList.replace('btn-outline-secondary', 'btn-outline-success');
+            var self = this;
+            setTimeout(function() {
+                self.innerHTML = '<i class="bi bi-clipboard me-1"></i>Copy';
+                self.classList.replace('btn-outline-success', 'btn-outline-secondary');
+            }, 2000);
+        });
+    });
+});
+</script>
+{% endblock %}

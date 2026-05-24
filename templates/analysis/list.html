@@ -1,0 +1,66 @@
+{% extends "layouts/dashboard_layout.html" %}
+
+{% block title %}AI Analysis - PolicyLens AI{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">AI Analysis</h1>
+        <p class="page-subtitle">All your AI-analyzed documents</p>
+    </div>
+    <a href="{{ url_for('upload.upload_document') }}" class="btn btn-primary">
+        <i class="bi bi-plus me-1"></i>New Analysis
+    </a>
+</div>
+
+<div class="card-panel">
+    <div class="panel-body p-0">
+        {% if analyses %}
+        <div class="table-responsive">
+            <table class="table dashboard-table mb-0">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Document</th>
+                        <th>Category</th>
+                        <th>Risk Level</th>
+                        <th>Analyzed On</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for a in analyses %}
+                    <tr>
+                        <td class="text-muted">{{ loop.index }}</td>
+                        <td><strong>{{ a.title }}</strong></td>
+                        <td><span class="badge badge-category">{{ a.category }}</span></td>
+                        <td>
+                            {% if a.risk_level == 'High' %}
+                                <span class="badge bg-danger">High</span>
+                            {% elif a.risk_level == 'Medium' %}
+                                <span class="badge bg-warning text-dark">Medium</span>
+                            {% else %}
+                                <span class="badge bg-success">Low</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-muted">{{ a.analyzed_at.strftime('%b %d, %Y %I:%M %p') }}</td>
+                        <td>
+                            <a href="{{ url_for('analysis.analyze', doc_id=a.document_id) }}" class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-eye me-1"></i>View
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <i class="bi bi-cpu"></i>
+            <p>No analyses yet. Upload a document to get started.</p>
+            <a href="{{ url_for('upload.upload_document') }}" class="btn btn-primary btn-sm">Upload Document</a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

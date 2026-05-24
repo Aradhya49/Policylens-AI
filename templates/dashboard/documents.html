@@ -1,0 +1,71 @@
+{% extends "layouts/dashboard_layout.html" %}
+
+{% block title %}My Documents - PolicyLens AI{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">My Documents</h1>
+        <p class="page-subtitle">All your uploaded documents</p>
+    </div>
+    <a href="{{ url_for('upload.upload_document') }}" class="btn btn-primary">
+        <i class="bi bi-plus me-1"></i>Upload New
+    </a>
+</div>
+
+<div class="card-panel">
+    <div class="panel-body p-0">
+        {% if documents %}
+        <div class="table-responsive">
+            <table class="table dashboard-table mb-0">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Title</th>
+                        <th>Category</th>
+                        <th>Risk</th>
+                        <th>Uploaded</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for doc in documents %}
+                    <tr>
+                        <td class="text-muted">{{ loop.index }}</td>
+                        <td><strong>{{ doc.title }}</strong></td>
+                        <td><span class="badge badge-category">{{ doc.category }}</span></td>
+                        <td>
+                            {% if doc.risk_level == 'High' %}
+                                <span class="badge bg-danger">High</span>
+                            {% elif doc.risk_level == 'Medium' %}
+                                <span class="badge bg-warning text-dark">Medium</span>
+                            {% elif doc.risk_level == 'Low' %}
+                                <span class="badge bg-success">Low</span>
+                            {% else %}
+                                <span class="badge bg-secondary">Not Analyzed</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-muted">{{ doc.uploaded_at.strftime('%b %d, %Y') }}</td>
+                        <td>
+                            <a href="{{ url_for('analysis.analyze', doc_id=doc.id) }}"
+                               class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-cpu me-1"></i>Analyze
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <i class="bi bi-inbox"></i>
+            <p>No documents uploaded yet.</p>
+            <a href="{{ url_for('upload.upload_document') }}" class="btn btn-primary btn-sm">
+                Upload Now
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

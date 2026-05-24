@@ -1,0 +1,390 @@
+{% extends "layouts/dashboard_layout.html" %}
+
+{% block title %}Profile - PolicyLens AI{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">My Profile</h1>
+        <p class="page-subtitle">Manage your account information</p>
+    </div>
+</div>
+
+<div class="row g-4">
+
+    <!-- LEFT: Avatar Card -->
+    <div class="col-lg-4">
+        <div class="card-panel text-center">
+            <div class="panel-body">
+
+                <!-- Profile Picture -->
+                <div class="profile-pic-wrapper">
+                    {% if user and user.profile_picture %}
+                        <img src="{{ url_for('static', filename='images/profiles/' + user.profile_picture) }}"
+                             alt="Profile" class="profile-pic-img">
+                    {% else %}
+                        <div class="profile-avatar">
+                            {{ session['username'][0].upper() }}
+                        </div>
+                    {% endif %}
+
+                    <!-- Camera button to change picture -->
+                    <button type="button"
+                            class="pic-edit-btn"
+                            onclick="document.getElementById('picInput').click()"
+                            title="Change photo">
+                        <i class="bi bi-camera-fill"></i>
+                    </button>
+                </div>
+
+                <!-- Hidden upload form -->
+                <form method="POST"
+                      action="{{ url_for('profile.upload_picture') }}"
+                      enctype="multipart/form-data"
+                      id="picForm">
+                    <input type="file"
+                           name="profile_picture"
+                           id="picInput"
+                           accept="image/*"
+                           style="display:none"
+                           onchange="document.getElementById('picForm').submit()">
+                </form>
+
+                <h4 class="mt-3 mb-1 fw-bold">{{ session['username'] }}</h4>
+                <p class="text-muted mb-3">{{ session['email'] }}</p>
+
+                <!-- Remove picture button (only if picture exists) -->
+                {% if user and user.profile_picture %}
+                <div class="mb-2">
+                    <form method="POST"
+                          action="{{ url_for('profile.remove_picture') }}"
+                          onsubmit="return confirm('Remove your profile picture?')">
+                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                            <i class="bi bi-trash me-1"></i>Remove Photo
+                        </button>
+                    </form>
+                </div>
+                {% endif %}
+
+                <hr>
+
+                <!-- Stats -->
+                <div class="profile-stats">
+                    <div class="profile-stat">
+                        <h3>{{ total_docs }}</h3>
+                        <p>Documents</p>
+                    </div>
+                    <div class="profile-stat">
+                        <h3>{{ total_analyses }}</h3>
+                        <p>Analyses</p>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- RIGHT: Details + Edit -->
+    <div class="col-lg-8">
+
+        <!-- VIEW mode -->
+        <div class="card-panel" id="viewCard">
+            <div class="panel-header">
+                <h5 class="panel-title">
+                    <i class="bi bi-person me-2"></i>Account Details
+                </h5>
+                <button class="btn btn-sm btn-outline-primary"
+                        onclick="toggleEdit(true)">
+                    <i class="bi bi-pencil me-1"></i>Edit Profile
+                </button>
+            </div>
+            <div class="panel-body">
+                <div class="profile-detail-row">
+                    <span class="detail-label"><i class="bi bi-person-badge me-2"></i>Username</span>
+                    <span class="detail-value">{{ user.username if user else session['username'] }}</span>
+                </div>
+                <div class="profile-detail-row">
+                    <span class="detail-label"><i class="bi bi-envelope me-2"></i>Email</span>
+                    <span class="detail-value">{{ user.email if user else session['email'] }}</span>
+                </div>
+                <div class="profile-detail-row">
+                    <span class="detail-label"><i class="bi bi-calendar me-2"></i>Member Since</span>
+                    <span class="detail-value">
+                        {% if user and user.created_at %}
+                            {{ user.created_at.strftime('%B %d, %Y') }}
+                        {% else %}
+                            —
+                        {% endif %}
+                    </span>
+                </div>
+                <div class="profile-detail-row">
+                    <span class="detail-label"><i class="bi bi-file-earmark-text me-2"></i>Total Documents</span>
+                    <span class="detail-value">{{ total_docs }} uploaded</span>
+                </div>
+                <div class="profile-detail-row" style="border-bottom:none">
+                    <span class="detail-label"><i class="bi bi-cpu me-2"></i>AI Analyses</span>
+                    <span class="detail-value">{{ total_analyses }} completed</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- EDIT mode (hidden by default) -->
+        <div class="card-panel d-none" id="editCard">
+            <div class="panel-header">
+                <h5 class="panel-title">
+                    <i class="bi bi-pencil-square me-2"></i>Edit Profile
+                </h5>
+                <button class="btn btn-sm btn-outline-secondary"
+                        onclick="toggleEdit(false)">
+                    <i class="bi bi-x me-1"></i>Cancel
+                </button>
+            </div>
+            <div class="panel-body">
+                <form method="POST"
+                      action="{{ url_for('profile.update_profile') }}">
+                    <div class="mb-4">
+                        <label class="form-label required-label fw-semibold">Username</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-person"></i></span>
+                            <input type="text"
+                                   name="username"
+                                   id="editUsername"
+                                   class="form-control form-control-lg"
+                                   value="{{ user.username if user else session['username'] }}"
+                                   required minlength="3">
+                        </div>
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label required-label fw-semibold">Email Address</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-envelope"></i></span>
+                            <input type="email"
+                                   name="email"
+                                   class="form-control form-control-lg"
+                                   value="{{ user.email if user else session['email'] }}"
+                                   required>
+                        </div>
+                    </div>
+
+                    <hr class="my-3">
+                    <p class="text-muted small mb-3">
+                        <i class="bi bi-info-circle me-1"></i>
+                        Leave password fields empty if you don't want to change your password.
+                    </p>
+
+                    <!-- New Password -->
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">New Password</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-lock"></i></span>
+                            <input type="password"
+                                   name="new_password"
+                                   id="newPassword"
+                                   class="form-control form-control-lg"
+                                   placeholder="Min 6 characters"
+                                   minlength="6">
+                            <button type="button" class="eye-btn"
+                                    onclick="togglePassword('newPassword', 'eyeNew')"
+                                    tabindex="-1">
+                                <i class="bi bi-eye" id="eyeNew"></i>
+                            </button>
+                        </div>
+                        <div class="invalid-feedback-custom" id="newpass-error"></div>
+                    </div>
+
+                    <!-- Confirm New Password -->
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold">Confirm New Password</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-lock-fill"></i></span>
+                            <input type="password"
+                                   name="confirm_new_password"
+                                   id="confirmNewPassword"
+                                   class="form-control form-control-lg"
+                                   placeholder="Repeat new password">
+                            <button type="button" class="eye-btn"
+                                    onclick="togglePassword('confirmNewPassword', 'eyeConfirm')"
+                                    tabindex="-1">
+                                <i class="bi bi-eye" id="eyeConfirm"></i>
+                            </button>
+                        </div>
+                        <div class="invalid-feedback-custom" id="confirmpass-error"></div>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary btn-lg flex-fill" id="saveProfileBtn">
+                            <i class="bi bi-check-circle me-2"></i>Save Changes
+                        </button>
+                        <button type="button"
+                                class="btn btn-outline-secondary btn-lg"
+                                onclick="toggleEdit(false)">
+                            Cancel
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="card-panel mt-4">
+            <div class="panel-header">
+                <h5 class="panel-title"><i class="bi bi-lightning me-2"></i>Quick Actions</h5>
+            </div>
+            <div class="panel-body">
+                <div class="row g-2">
+                    <div class="col-md-4">
+                        <a href="{{ url_for('upload.upload_document') }}"
+                           class="btn btn-primary w-100">
+                            <i class="bi bi-cloud-upload me-2"></i>Upload Document
+                        </a>
+                    </div>
+                    <div class="col-md-4">
+                        <a href="{{ url_for('reports.index') }}"
+                           class="btn btn-outline-primary w-100">
+                            <i class="bi bi-file-earmark-bar-graph me-2"></i>View Reports
+                        </a>
+                    </div>
+                    <div class="col-md-4">
+                        <a href="{{ url_for('auth.logout') }}"
+                           class="btn btn-outline-danger w-100">
+                            <i class="bi bi-box-arrow-left me-2"></i>Logout
+                        </a>
+                    </div>
+                </div>
+
+                <hr class="my-3">
+
+                <!-- Danger Zone -->
+                <div class="danger-zone">
+                    <p class="text-danger fw-semibold mb-2">
+                        <i class="bi bi-exclamation-triangle me-1"></i>Danger Zone
+                    </p>
+                    <p class="text-muted small mb-3">
+                        Deleting your account will permanently remove all your documents, analyses and data. This cannot be undone.
+                    </p>
+                    <button type="button" class="btn btn-outline-danger btn-sm"
+                            data-bs-toggle="modal" data-bs-target="#deleteAccountModal">
+                        <i class="bi bi-person-x me-1"></i>Delete My Account
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- Delete Account Modal -->
+<div class="modal fade" id="deleteAccountModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-body text-center py-4 px-4">
+                <div class="logout-modal-icon mb-3" style="background:#fff1f2">
+                    <i class="bi bi-person-x text-danger" style="font-size:26px"></i>
+                </div>
+                <h5 class="fw-bold mb-2">Delete Account?</h5>
+                <p class="text-muted small mb-4">
+                    This will permanently delete your account, all uploaded documents and all AI analyses.
+                    <strong>This cannot be undone.</strong>
+                </p>
+                <div class="d-flex gap-2 justify-content-center">
+                    <button type="button" class="btn btn-outline-secondary px-4"
+                            data-bs-dismiss="modal">Cancel</button>
+                    <form method="POST" action="{{ url_for('profile.delete_account') }}">
+                        <button type="submit" class="btn btn-danger px-4">
+                            <i class="bi bi-trash me-1"></i>Yes, Delete Everything
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function toggleEdit(show) {
+    var viewCard = document.getElementById('viewCard');
+    var editCard = document.getElementById('editCard');
+    if (show) {
+        viewCard.classList.add('d-none');
+        editCard.classList.remove('d-none');
+        document.getElementById('editUsername').focus();
+    } else {
+        editCard.classList.add('d-none');
+        viewCard.classList.remove('d-none');
+    }
+}
+
+function togglePassword(fieldId, iconId) {
+    var field = document.getElementById(fieldId);
+    var icon  = document.getElementById(iconId);
+    if (field.type === 'password') {
+        field.type = 'text';
+        icon.classList.replace('bi-eye', 'bi-eye-slash');
+    } else {
+        field.type = 'password';
+        icon.classList.replace('bi-eye-slash', 'bi-eye');
+    }
+}
+
+// Live validation: confirm password must match new password
+document.getElementById('confirmNewPassword').addEventListener('input', function () {
+    var newPw  = document.getElementById('newPassword').value;
+    var err    = document.getElementById('confirmpass-error');
+    if (this.value.length === 0) {
+        err.style.display = 'none';
+        this.classList.remove('input-invalid', 'input-valid');
+    } else if (this.value !== newPw) {
+        err.textContent   = '⚠ Passwords do not match.';
+        err.style.display = 'block';
+        this.classList.add('input-invalid');
+        this.classList.remove('input-valid');
+    } else {
+        err.style.display = 'none';
+        this.classList.remove('input-invalid');
+        this.classList.add('input-valid');
+    }
+});
+
+document.getElementById('newPassword').addEventListener('input', function () {
+    var err = document.getElementById('newpass-error');
+    if (this.value.length === 0) {
+        err.style.display = 'none';
+        this.classList.remove('input-invalid', 'input-valid');
+    } else if (this.value.length < 6) {
+        err.textContent   = '⚠ Password must be at least 6 characters.';
+        err.style.display = 'block';
+        this.classList.add('input-invalid');
+        this.classList.remove('input-valid');
+    } else {
+        err.style.display = 'none';
+        this.classList.remove('input-invalid');
+        this.classList.add('input-valid');
+    }
+    // Re-check confirm field
+    document.getElementById('confirmNewPassword').dispatchEvent(new Event('input'));
+});
+
+// Block form submit if passwords don't match
+document.querySelector('#editCard form').addEventListener('submit', function (e) {
+    var newPw  = document.getElementById('newPassword').value;
+    var confPw = document.getElementById('confirmNewPassword').value;
+
+    if (newPw && newPw.length < 6) {
+        e.preventDefault();
+        document.getElementById('newpass-error').textContent   = '⚠ Password must be at least 6 characters.';
+        document.getElementById('newpass-error').style.display = 'block';
+        document.getElementById('newPassword').focus();
+        return;
+    }
+
+    if (newPw && newPw !== confPw) {
+        e.preventDefault();
+        document.getElementById('confirmpass-error').textContent   = '⚠ Passwords do not match.';
+        document.getElementById('confirmpass-error').style.display = 'block';
+        document.getElementById('confirmNewPassword').focus();
+        return;
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,135 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Login - PolicyLens AI{% endblock %}
+
+{% block body %}
+<div class="auth-wrapper">
+    <div class="auth-card">
+
+        <div class="auth-brand">
+            <div class="brand-icon"><i class="bi bi-shield-check"></i></div>
+            <h2 class="brand-title">PolicyLens <span>AI</span></h2>
+            <p class="brand-subtitle">AI-Powered Legal Document Simplifier</p>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                        <i class="bi bi-{% if category == 'success' %}check-circle{% elif category == 'danger' %}x-circle{% else %}info-circle{% endif %} me-2"></i>
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <h4 class="auth-heading">Welcome Back</h4>
+        <p class="auth-sub">Sign in to your account</p>
+
+        <form method="POST" action="{{ url_for('auth.login') }}" id="loginForm" novalidate>
+
+            <!-- Email -->
+            <div class="mb-3">
+                <label class="form-label required-label">Email Address</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-envelope"></i></span>
+                    <input type="email" name="email" id="email"
+                           class="form-control" placeholder="you@example.com"
+                           required autocomplete="email">
+                </div>
+                <div class="invalid-feedback-custom" id="email-error"></div>
+            </div>
+
+            <!-- Password -->
+            <div class="mb-4">
+                <label class="form-label required-label">Password</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-lock"></i></span>
+                    <input type="password" name="password" id="password"
+                           class="form-control" placeholder="••••••••"
+                           required autocomplete="current-password">
+                    <button type="button" class="eye-btn" onclick="togglePassword('password', 'eyeIcon1')" tabindex="-1">
+                        <i class="bi bi-eye" id="eyeIcon1"></i>
+                    </button>
+                </div>
+                <div class="invalid-feedback-custom" id="password-error"></div>
+            </div>
+
+            <button type="submit" class="btn btn-primary w-100 auth-btn">
+                <i class="bi bi-box-arrow-in-right me-2"></i>Sign In
+            </button>
+        </form>
+
+        <div class="auth-footer">
+            Don't have an account?
+            <a href="{{ url_for('auth.register') }}">Create one</a>
+        </div>
+
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function togglePassword(fieldId, iconId) {
+    const field = document.getElementById(fieldId);
+    const icon  = document.getElementById(iconId);
+    if (field.type === 'password') {
+        field.type = 'text';
+        icon.classList.replace('bi-eye', 'bi-eye-slash');
+    } else {
+        field.type = 'password';
+        icon.classList.replace('bi-eye-slash', 'bi-eye');
+    }
+}
+
+function isValidEmail(email) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim());
+}
+
+function setError(inputId, errorId, message) {
+    document.getElementById(inputId).classList.add('input-invalid');
+    document.getElementById(inputId).classList.remove('input-valid');
+    const err = document.getElementById(errorId);
+    err.textContent = message;
+    err.style.display = 'block';
+}
+
+function clearState(inputId, errorId) {
+    document.getElementById(inputId).classList.remove('input-invalid', 'input-valid');
+    const err = document.getElementById(errorId);
+    err.textContent = '';
+    err.style.display = 'none';
+}
+
+document.getElementById('email').addEventListener('input', function() {
+    const val = this.value.trim();
+    if (val.length === 0) {
+        clearState('email', 'email-error');
+    } else if (!isValidEmail(val)) {
+        setError('email', 'email-error', '⚠ Invalid email format. Example: user@example.com');
+    } else {
+        clearState('email', 'email-error');
+    }
+});
+
+document.getElementById('loginForm').addEventListener('submit', function(e) {
+    let valid = true;
+    const email    = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value;
+
+    if (!isValidEmail(email)) {
+        setError('email', 'email-error', '⚠ Invalid email format. Example: user@example.com');
+        valid = false;
+    }
+
+    if (password.length === 0) {
+        setError('password', 'password-error', '⚠ Password is required.');
+        valid = false;
+    }
+
+    if (!valid) e.preventDefault();
+});
+</script>
+{% endblock %}
