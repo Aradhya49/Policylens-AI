@@ -1,13 +1,11 @@
-import mysql.connector
-from config import Config
+import os
+import psycopg2
+from dotenv import load_dotenv
 
+load_dotenv()
 
 def get_db_connection():
-    """Create and return a MySQL database connection."""
-    connection = mysql.connector.connect(
-        host=Config.DB_HOST,
-        user=Config.DB_USER,
-        password=Config.DB_PASSWORD,
-        database=Config.DB_NAME
+    connection = psycopg2.connect(
+        os.getenv("DATABASE_URL")
     )
     return connection
