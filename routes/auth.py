@@ -1,3 +1,5 @@
+from psycopg2.extras import RealDictCursor
+
 from flask import Blueprint, render_template, request, redirect, url_for, session, flash
 import bcrypt
 from db import get_db_connection
@@ -31,7 +33,7 @@ def register():
 
         try:
             conn = get_db_connection()
-            cursor = conn.cursor(dictionary=True)
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
 
             # Check if username or email already exists
             cursor.execute('SELECT id FROM users WHERE username = %s OR email = %s', (username, email))
@@ -80,7 +82,7 @@ def login():
 
         try:
             conn = get_db_connection()
-            cursor = conn.cursor(dictionary=True)
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
 
             cursor.execute('SELECT * FROM users WHERE email = %s', (email,))
             user = cursor.fetchone()

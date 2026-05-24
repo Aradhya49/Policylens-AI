@@ -1,3 +1,5 @@
+from psycopg2.extras import RealDictCursor
+
 from flask import Blueprint, render_template, session, redirect, url_for
 from db import get_db_connection
 
@@ -22,7 +24,7 @@ def index():
 
     try:
         conn   = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
 
         cursor.execute('SELECT COUNT(*) AS total FROM uploaded_documents WHERE user_id = %s', (user_id,))
         total_docs = cursor.fetchone()['total']

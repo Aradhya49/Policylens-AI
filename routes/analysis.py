@@ -1,3 +1,5 @@
+from psycopg2.extras import RealDictCursor
+
 import os
 import json
 import requests
@@ -374,7 +376,7 @@ def analyze(doc_id):
 
     try:
         conn   = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
 
         cursor.execute('SELECT * FROM uploaded_documents WHERE id = %s AND user_id = %s', (doc_id, user_id))
         document = cursor.fetchone()
@@ -519,7 +521,7 @@ def analysis_list():
     user_id = session['user_id']
     try:
         conn   = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
         cursor.execute(
             '''SELECT aa.*, ud.title, ud.category
                FROM ai_analyses aa
@@ -541,7 +543,7 @@ def download_pdf(doc_id):
     user_id = session['user_id']
     try:
         conn   = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
         cursor.execute('SELECT * FROM uploaded_documents WHERE id = %s AND user_id = %s', (doc_id, user_id))
         document = cursor.fetchone()
         cursor.execute('SELECT * FROM ai_analyses WHERE document_id = %s AND user_id = %s', (doc_id, user_id))

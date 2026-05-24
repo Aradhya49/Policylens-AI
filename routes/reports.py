@@ -1,3 +1,5 @@
+from psycopg2.extras import RealDictCursor
+
 import json
 import os
 from flask import Blueprint, render_template, request, redirect, url_for, session, flash, current_app
@@ -25,7 +27,7 @@ def index():
 
     try:
         conn   = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
 
         query  = '''SELECT aa.id AS analysis_id, aa.risk_level, aa.analyzed_at,
                            ud.id AS doc_id, ud.title, ud.category, ud.uploaded_at, ud.file_size
@@ -71,7 +73,7 @@ def delete_report(doc_id):
     user_id = session['user_id']
     try:
         conn   = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
         cursor.execute(
             'SELECT filename FROM uploaded_documents WHERE id = %s AND user_id = %s',
             (doc_id, user_id)

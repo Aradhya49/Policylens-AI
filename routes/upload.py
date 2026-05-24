@@ -1,3 +1,5 @@
+from psycopg2.extras import RealDictCursor
+
 import os
 import uuid
 from flask import Blueprint, render_template, request, redirect, url_for, session, flash, current_app
@@ -99,7 +101,7 @@ def my_documents():
     user_id = session['user_id']
     try:
         conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
         cursor.execute(
             '''SELECT ud.*, COALESCE(aa.risk_level, 'Not Analyzed') AS risk_level, aa.id AS analysis_id
                FROM uploaded_documents ud

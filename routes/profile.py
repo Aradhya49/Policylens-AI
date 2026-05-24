@@ -1,3 +1,5 @@
+from psycopg2.extras import RealDictCursor
+
 import os
 import uuid
 from flask import Blueprint, render_template, session, redirect, url_for, flash, request, current_app
@@ -25,7 +27,7 @@ def allowed_image(filename):
 def get_user_safe(user_id):
     """Fetch user — works whether or not profile_picture column exists."""
     conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
+    cursor = conn.cursor(cursor_factory=RealDictCursor)
     try:
         # Try with profile_picture column first
         cursor.execute(
@@ -54,7 +56,7 @@ def index():
         user = get_user_safe(user_id)
 
         conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
         cursor.execute('SELECT COUNT(*) AS total FROM uploaded_documents WHERE user_id = %s', (user_id,))
         total_docs = cursor.fetchone()['total']
         cursor.execute('SELECT COUNT(*) AS total FROM ai_analyses WHERE user_id = %s', (user_id,))
@@ -101,7 +103,7 @@ def update_profile():
 
     try:
         conn   = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
 
         # Check for duplicates excluding current user
         cursor.execute(
@@ -166,7 +168,7 @@ def upload_picture():
 
         # Delete old picture if any
         conn   = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
         try:
             cursor.execute('SELECT profile_picture FROM users WHERE id=%s', (user_id,))
             row = cursor.fetchone()
@@ -197,7 +199,7 @@ def delete_account():
     user_id = session['user_id']
     try:
         conn   = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
 
         # Get all uploaded filenames to delete from disk
         cursor.execute('SELECT filename FROM uploaded_documents WHERE user_id = %s', (user_id,))
@@ -237,7 +239,7 @@ def remove_picture():
     user_id = session['user_id']
     try:
         conn   = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
         cursor.execute('SELECT profile_picture FROM users WHERE id=%s', (user_id,))
         row = cursor.fetchone()
         if row and row.get('profile_picture'):
