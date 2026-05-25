@@ -4,6 +4,11 @@
 
 PolicyLens is a Flask-based web application that helps users upload and analyze legal documents using AI. The platform provides AI-generated summaries, risk analysis, clause insights, and downloadable reports.
 
+
+Live Website
+https://policylens-ai-1r8t.onrender.com
+
+
 The project is built using:
 
 * Python (Flask)
